@@ -1,0 +1,96 @@
+name: Autograding Tests
+run-name: Autograding
+
+on:
+  - push
+  - repository_dispatch
+
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Problem 1 - Equal Weight Portfolio
+        id: problem-1-eqw
+        uses: classroom-resources/autograding-command-grader@v1
+        continue-on-error: true
+        with:
+          test-name: Problem 1 - Equal Weight Portfolio
+          setup-command: ''
+          command: python Markowitz.py --score eqw
+          timeout: 10
+          max-score: 20
+
+      - name: Problem 2 - Risk Parity Portfolio
+        id: problem-2-rp
+        uses: classroom-resources/autograding-command-grader@v1
+        continue-on-error: true
+        with:
+          test-name: Problem 2 - Risk Parity Portfolio
+          setup-command: ''
+          command: python Markowitz.py --score rp
+          timeout: 10
+          max-score: 20
+
+      - name: Problem 3 - Mean Variance Portfolio
+        id: problem-3-mv
+        uses: classroom-resources/autograding-command-grader@v1
+        continue-on-error: true
+        with:
+          test-name: Problem 3 - Mean Variance Portfolio
+          setup-command: ''
+          command: python Markowitz.py --score mv
+          timeout: 10
+          max-score: 30
+
+      - name: Problem 4.1 - Sharpe Ratio > 1
+        id: problem-4-1-one
+        uses: classroom-resources/autograding-command-grader@v1
+        continue-on-error: true
+        with:
+          test-name: Problem 4.1 - Sharpe Ratio > 1
+          setup-command: ''
+          command: python Markowitz_2.py --score one
+          timeout: 10
+          max-score: 15
+
+      - name: Problem 4.2 - Sharpe Ratio > SPY
+        id: problem-4-2-spy
+        uses: classroom-resources/autograding-command-grader@v1
+        continue-on-error: true
+        with:
+          test-name: Problem 4.2 - Sharpe Ratio > SPY
+          setup-command: ''
+          command: python Markowitz_2.py --score spy
+          timeout: 10
+          max-score: 15
+
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          PROBLEM-1-EQW_RESULTS: "${{steps.problem-1-eqw.outputs.result}}"
+          PROBLEM-2-RP_RESULTS: "${{steps.problem-2-rp.outputs.result}}"
+          PROBLEM-3-MV_RESULTS: "${{steps.problem-3-mv.outputs.result}}"
+          PROBLEM-4-1-ONE_RESULTS: "${{steps.problem-4-1-one.outputs.result}}"
+          PROBLEM-4-2-SPY_RESULTS: "${{steps.problem-4-2-spy.outputs.result}}"
+        with:
+          runners: problem-1-eqw,problem-2-rp,problem-3-mv,problem-4-1-one,problem-4-2-spy
