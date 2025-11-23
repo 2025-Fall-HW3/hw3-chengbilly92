@@ -70,7 +70,55 @@ class MyPortfolio:
         """
         TODO: Complete Task 4 Below
         """
-        
+
+        eps = 1e-8
+
+        for i in range(self.lookback, len(self.price.index)):
+            curr_date = self.price.index[i]
+
+            try:
+                past_date_idx = i - self.lookback
+                past_prices = self.price[assets].iloc[past_date_idx]
+                curr_prices = self.price[assets].iloc[i]
+                momentum = (curr_prices / past_prices - 1).replace([np.inf, -np.inf], np.nan)
+            except Exception:
+                momentum = pd.Series(index=assets, data=np.nan)
+
+            valid_mom = momentum.dropna()
+            if len(valid_mom) == 0:
+                selected = list(assets)
+            else:
+                selected = list(valid_mom.sort_values(ascending=False).iloc[:3].index)
+                if len(selected) == 0:
+                    selected = list(assets)
+
+            window_returns = self.returns[assets].iloc[i - self.lookback : i]
+            vol = window_returns.std(skipna=True)
+
+            sel_vol = vol[selected].copy()
+            sel_vol = sel_vol.fillna(np.nan)
+            sel_vol[sel_vol <= 0] = np.nan
+            if sel_vol.dropna().empty:
+                w_selected = pd.Series(1.0 / len(selected), index=selected)
+            else:
+                sel_vol_filled = sel_vol.fillna(sel_vol.dropna().median())
+                inv_vol = 1.0 / (sel_vol_filled + eps)
+                w_selected = inv_vol / inv_vol.sum()
+
+            row = pd.Series(0.0, index=self.price.columns)
+            for a in selected:
+                row[a] = float(w_selected.get(a, 0.0))
+
+            s = row.sum()
+            if s > 0:
+                row = row / s
+            else:
+                avail = list(assets)
+                ew = 1.0 / len(avail)
+                for a in avail:
+                    row[a] = ew
+
+            self.portfolio_weights.loc[curr_date] = row
         
         """
         TODO: Complete Task 4 Above
